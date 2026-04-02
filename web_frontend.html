@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fish Speech TTS Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .status-bar {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #444;
+        }
+
+        .status-dot.connected {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: #e0e0e0;
+            font-size: 1em;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+            color: #888;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover .file-upload-btn {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .reference-item {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reference-item audio {
+            height: 30px;
+        }
+
+        .remove-btn {
+            background: #ef4444;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-item label {
+            color: #aaa;
+        }
+
+        select, input[type="range"] {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: #e0e0e0;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .audio-output {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .audio-output audio {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .metrics {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .metric-badge {
+            background: rgba(0,212,255,0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+        }
+
+        .error-message {
+            background: rgba(239,68,68,0.2);
+            border: 1px solid #ef4444;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            color: #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00d4ff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .toggle-btn {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: #aaa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: #00d4ff;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐟 Fish Speech TTS</h1>
+            <p>Text-to-Speech with Voice Cloning</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Checking connection...</span>
+            </div>
+            <div>
+                <small>API Server: <span id="apiUrl">http://localhost:8080</span></small>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="left-panel">
+                <div class="card">
+                    <h2>📝 Input Text</h2>
+                    <div class="input-group">
+                        <textarea id="inputText" placeholder="Enter the text you want to convert to speech...">[excited, joyful tone] We're going to DISNEY WORLD! [squeal of delight] I've been saving for [emphasis] three years [breathless] and finally, FINALLY we can go!</textarea>
+                    </div>
+                    <button class="generate-btn" id="generateBtn" onclick="generateAudio()">
+                        <span id="btnText">🎵 Generate Audio</span>
+                    </button>
+                    <div id="errorMessage" class="error-message" style="display:none;"></div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h2>🎧 Output</h2>
+                    <div class="audio-output">
+                        <audio id="audioPlayer" controls></audio>
+                        <div class="metrics" id="metrics"></div>
+                        <a id="downloadLink" style="display:none; margin-top:10px; display:inline-block; padding:10px 20px; background:#00d4ff; color:#000; text-decoration:none; border-radius:5px;">Download Audio</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <h2>🎤 Reference Audio</h2>
+                    <p style="color:#888; font-size:0.9em; margin-bottom:15px;">Upload reference audio for voice cloning</p>
+
+                    <div class="file-upload">
+                        <div class="file-upload-btn">
+                            <span>📁 Upload Reference Audio</span>
+                        </div>
+                        <input type="file" id="referenceFile" accept="audio/*" onchange="handleReferenceUpload(event)">
+                    </div>
+
+                    <div id="referenceList"></div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h2>⚙️ Settings</h2>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label>Format</label>
+                            <div class="toggle-group" id="formatToggle">
+                                <button class="toggle-btn active" onclick="setFormat('mp3')">mp3</button>
+                                <button class="toggle-btn" onclick="setFormat('wav')">wav</button>
+                                <button class="toggle-btn" onclick="setFormat('opus')">opus</button>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Latency</label>
+                            <select id="latencyMode">
+                                <option value="normal">Normal</option>
+                                <option value="balanced">Balanced</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Chunk Length</label>
+                            <input type="range" id="chunkLength" min="100" max="1000" value="200" oninput="updateRangeLabel(this, 'chunkLengthVal')">
+                            <span id="chunkLengthVal" style="color:#00d4ff; font-size:0.9em;">200</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Max Tokens</label>
+                            <input type="range" id="maxTokens" min="256" max="2048" value="1024" oninput="updateRangeLabel(this, 'maxTokensVal')">
+                            <span id="maxTokensVal" style="color:#00d4ff; font-size:0.9em;">1024</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Temperature</label>
+                            <input type="range" id="temperature" min="0.8" max="1" step="0.01" value="0.9" oninput="updateRangeLabel(this, 'temperatureVal')">
+                            <span id="temperatureVal" style="color:#00d4ff; font-size:0.9em;">0.9</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Top P</label>
+                            <input type="range" id="topP" min="0.8" max="1" step="0.01" value="0.9" oninput="updateRangeLabel(this, 'topPVal')">
+                            <span id="topPVal" style="color:#00d4ff; font-size:0.9em;">0.9</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Normalize Text</label>
+                            <input type="checkbox" id="normalize">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let references = [];
+        let currentFormat = 'mp3';
+
+        // Check API connection
+        async function checkConnection() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                const response = await fetch(`${API_BASE}/v1/health`);
+                if (response.ok) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Connected to API Server';
+                } else {
+                    throw new Error('API returned error');
+                }
+            } catch (error) {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Not connected - Make sure the API server is running';
+            }
+        }
+
+        // Check connection on load and every 5 seconds
+        checkConnection();
+        setInterval(checkConnection, 5000);
+
+        // Handle reference audio upload
+        async function handleReferenceUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const base64Audio = arrayBufferToBase64(arrayBuffer);
+
+            const reference = {
+                audio: base64Audio,
+                text: '',
+                name: file.name
+            };
+
+            references.push(reference);
+            updateReferenceList();
+            event.target.value = '';
+        }
+
+        // Update reference list display
+        function updateReferenceList() {
+            const list = document.getElementById('referenceList');
+            list.innerHTML = references.map((ref, index) => `
+                <div class="reference-item">
+                    <div style="flex:1;">
+                        <input type="text" placeholder="Reference text..."
+                               style="width:100%; padding:5px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#e0e0e0; border-radius:5px;"
+                               value="${ref.text}" onchange="references[${index}].text = this.value">
+                        <audio controls src="data:audio/mp3;base64,${ref.audio}" style="width:100%; margin-top:5px;"></audio>
+                    </div>
+                    <button class="remove-btn" onclick="removeReference(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeReference(index) {
+            references.splice(index, 1);
+            updateReferenceList();
+        }
+
+        // Convert ArrayBuffer to Base64
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        // Set audio format
+        function setFormat(format) {
+            currentFormat = format;
+            document.querySelectorAll('#formatToggle .toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.trim() === format) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Update range label
+        function updateRangeLabel(input, labelId) {
+            document.getElementById(labelId).textContent = input.value;
+        }
+
+        // Generate audio
+        async function generateAudio() {
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('btnText');
+            const errorDiv = document.getElementById('errorMessage');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const metricsDiv = document.getElementById('metrics');
+            const downloadLink = document.getElementById('downloadLink');
+
+            // Reset state
+            errorDiv.style.display = 'none';
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span> Generating...';
+
+            const payload = {
+                text: document.getElementById('inputText').value,
+                chunk_length: parseInt(document.getElementById('chunkLength').value),
+                max_new_tokens: parseInt(document.getElementById('maxTokens').value),
+                format: currentFormat,
+                latency: document.getElementById('latencyMode').value,
+                normalize: document.getElementById('normalize').checked,
+                references: references.map(ref => ({
+                    audio: ref.audio,
+                    text: ref.text
+                })),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                top_p: parseFloat(document.getElementById('topP').value),
+                repetition_penalty: 1.05
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/v1/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                    throw new Error(errorData.detail || 'Failed to generate audio');
+                }
+
+                const reader = response.body.getReader();
+                const chunks = [];
+                let receivedLength = 0;
+                const startTime = performance.now();
+                let firstChunkTime = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    if (!firstChunkTime) {
+                        firstChunkTime = performance.now();
+                    }
+
+                    receivedLength += value.length;
+                    chunks.push(value);
+                }
+
+                // Combine chunks and create audio blob
+                const mimeType = `audio/${currentFormat}`;
+                const audioBlob = new Blob(chunks, { type: mimeType });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                // Update audio player
+                audioPlayer.src = audioUrl;
+                audioPlayer.load();
+
+                // Update metrics
+                const ttft = firstChunkTime ? (firstChunkTime - startTime).toFixed(2) : 'N/A';
+                metricsDiv.innerHTML = `
+                    <span class="metric-badge">Size: ${(receivedLength/1024).toFixed(1)} KB</span>
+                    <span class="metric-badge">Time to First Token: ${ttft} ms</span>
+                    <span class="metric-badge">Format: ${currentFormat.toUpperCase()}</span>
+                `;
+
+                // Setup download link
+                downloadLink.href = audioUrl;
+                downloadLink.download = `generated_audio.${currentFormat}`;
+                downloadLink.style.display = 'inline-block';
+
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = '🎵 Generate Audio';
+            }
+        }
+    </script>
+</body>
+</html>
