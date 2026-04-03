@@ -1,0 +1,17 @@
+Fish Speech Windows Startup Scripts
+======================================
+
+1. start_api_server.bat
+   Starts the Fish Speech API server.
+   - Backend API: http://localhost:8080
+   - Built-in WebUI: http://localhost:8080/ui
+   - API Docs: http://localhost:8080/docs
+
+2. start_frontend.bat
+   Starts a simple HTTP server for the standalone HTML frontend.
+   - Frontend: http://localhost:8000
+   - Requires API server to be running on port 8080.
+
+You can also open web_frontend.html directly in your browser.
+
+Note: Make sure to run start_api_server.bat first

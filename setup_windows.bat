@@ -84,10 +84,10 @@ if exist "checkpoints\s2-pro" (
 
 REM Install huggingface-cli for model download
 echo Installing huggingface-cli...
-uv pip install -U "huggingface_hub[cli]"
+uv pip install -U huggingface_hub
 if %ERRORLEVEL% neq 0 (
     echo Failed to install huggingface_hub. Trying alternative method...
-    python -m pip install -U "huggingface_hub[cli]"
+    python -m pip install -U huggingface_hub
 )
 echo.
 
@@ -97,8 +97,8 @@ echo Repository: fishaudio/s2-pro
 echo Destination: checkpoints\s2-pro
 echo.
 
-REM Use huggingface-cli to download models
-huggingface-cli download fishaudio/s2-pro --local-dir checkpoints/s2-pro --local-dir-use-symlinks False
+REM Use hf CLI to download models (renamed from huggingface-cli in hub >= 1.0)
+.venv\Scripts\hf.exe download fishaudio/s2-pro --local-dir checkpoints/s2-pro
 if %ERRORLEVEL% neq 0 (
     echo.
     echo ========================================
@@ -106,7 +106,7 @@ if %ERRORLEVEL% neq 0 (
     echo ========================================
     echo.
     echo You can try running this command manually:
-    echo   huggingface-cli download fishaudio/s2-pro --local-dir checkpoints/s2-pro --local-dir-use-symlinks False
+    echo   .venv\Scripts\hf.exe download fishaudio/s2-pro --local-dir checkpoints/s2-pro
     echo.
     echo Or download manually from: https://huggingface.co/fishaudio/s2-pro
 ) else (
@@ -130,7 +130,7 @@ echo @echo off
 echo setlocal enabledelayedexpansion
 echo.
 echo REM Check if virtual environment exists
-echo if not exist ".venv" ^(>
+echo if not exist ".venv" ^(
 echo     echo Virtual environment not found!
 echo     echo Please run setup_windows.bat first.
 echo     pause
@@ -138,7 +138,7 @@ echo     exit /b 1
 echo ^)
 echo.
 echo REM Check if models exist
-echo if not exist "checkpoints\s2-pro" ^(>
+echo if not exist "checkpoints\s2-pro" ^(
 echo     echo Models not found in checkpoints\s2-pro
 echo     echo Please run setup_windows.bat to download models.
 echo     pause
